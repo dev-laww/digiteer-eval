@@ -1,9 +1,9 @@
 import './App.css'
-import Tasks from "./Tasks"
+import Tasks from './pages/Tasks'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
-import { useAuthStore } from './store/auth.js'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import { useAuthStore } from './store/auth'
 import ProtectedRoute from './components/ProtectedRoute'
 import { Button } from './components'
 
