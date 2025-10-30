@@ -16,18 +16,18 @@ public class TasksController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
 
-    // Request DTOs for create and update bodies
-    public record class CreateTaskRequest
+    public record CreateTaskRequest
     {
-        [Required]
-        public string Title { get; init; } = string.Empty;
+        [Required] public string Title { get; init; } = string.Empty;
     }
 
-    public record class UpdateTaskRequest
+    public record UpdateTaskRequest
     {
         public string? Title { get; init; }
         public bool? IsDone { get; init; }
     }
+
+    public record TaskResponse(int Id, string Title, bool IsDone);
 
     public TasksController(ApplicationDbContext context)
     {
@@ -40,8 +40,9 @@ public class TasksController : ControllerBase
         var userId = GetUserId();
         var tasks = await _context.Tasks
             .Where(t => t.UserId == userId)
+            .Select(t => new TaskResponse(t.Id, t.Title, t.IsDone))
             .ToListAsync();
-        return Ok(ApiResponse<List<TaskItem>>.Ok(tasks));
+        return Ok(ApiResponse<List<TaskResponse>>.Ok(tasks));
     }
 
     [HttpPost]
@@ -51,7 +52,8 @@ public class TasksController : ControllerBase
         var task = new TaskItem { Title = request.Title, IsDone = false, UserId = userId };
         _context.Tasks.Add(task);
         await _context.SaveChangesAsync();
-        return StatusCode(201, ApiResponse<TaskItem>.Ok(task, "Created", 201));
+        var response = new TaskResponse(task.Id, task.Title, task.IsDone);
+        return StatusCode(201, ApiResponse<TaskResponse>.Ok(response, "Created", 201));
     }
 
     [HttpPut("{id}")]
@@ -59,13 +61,14 @@ public class TasksController : ControllerBase
     {
         var userId = GetUserId();
         var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-        if (task == null) return StatusCode(404, ApiResponse<TaskItem>.Fail("Task not found", 404));
+        if (task == null) return StatusCode(404, ApiResponse<object>.Fail("Task not found", 404));
 
         if (updated.Title != null) task.Title = updated.Title;
         if (updated.IsDone.HasValue) task.IsDone = updated.IsDone.Value;
         await _context.SaveChangesAsync();
 
-        return Ok(ApiResponse<TaskItem>.Ok(task, "Updated"));
+        var response = new TaskResponse(task.Id, task.Title, task.IsDone);
+        return Ok(ApiResponse<TaskResponse>.Ok(response, "Updated"));
     }
 
     [HttpDelete("{id}")]
@@ -84,8 +87,8 @@ public class TasksController : ControllerBase
     private int GetUserId()
     {
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst(ClaimTypes.Name)?.Value
-            ?? User.FindFirst("sub")?.Value;
+                      ?? User.FindFirst(ClaimTypes.Name)?.Value
+                      ?? User.FindFirst("sub")?.Value;
         if (idClaim == null) throw new UnauthorizedAccessException("Missing user id claim");
         return int.Parse(idClaim);
     }
