@@ -3,6 +3,8 @@ using TaskManager.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics;
+using TaskManager.Dto;
 using System.Text;
 
 DotNetEnv.Env.Load();
@@ -73,10 +75,40 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Global exception handler -> consistent 500 JSON response
+app.UseExceptionHandler(builder =>
+{
+    builder.Run(async context =>
+    {
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        var ex = exceptionFeature?.Error;
+
+        var errorDetail = ex == null
+            ? null
+            : new ErrorDetail
+            {
+                Type = ex.GetType().Name,
+                Message = app.Environment.IsDevelopment() ? ex.Message : "An unexpected error occurred",
+                StackTrace = app.Environment.IsDevelopment() ? ex.StackTrace : null
+            };
+
+        var response = ApiResponse<object>.Fail("Internal server error", 500, errorDetail);
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapFallback(async context =>
+{
+    context.Response.StatusCode = 404;
+    await context.Response.WriteAsJsonAsync(ApiResponse<object>.Fail("Route not found", 404));
+});
 
 app.Run();
 
