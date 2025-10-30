@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using TaskManager.Dto;
 using System.ComponentModel.DataAnnotations;
+using TaskManager.Repositories;
 
 namespace TaskManager.API;
 
@@ -14,7 +15,7 @@ namespace TaskManager.API;
 [ApiController]
 public class TasksController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITaskRepository _tasks;
 
     public record CreateTaskRequest
     {
@@ -29,19 +30,18 @@ public class TasksController : ControllerBase
 
     public record TaskResponse(int Id, string Title, bool IsDone);
 
-    public TasksController(ApplicationDbContext context)
+    public TasksController(ITaskRepository tasks)
     {
-        _context = context;
+        _tasks = tasks;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get()
     {
         var userId = GetUserId();
-        var tasks = await _context.Tasks
-            .Where(t => t.UserId == userId)
+        var tasks = (await _tasks.GetAllForUserAsync(userId))
             .Select(t => new TaskResponse(t.Id, t.Title, t.IsDone))
-            .ToListAsync();
+            .ToList();
         return Ok(ApiResponse<List<TaskResponse>>.Ok(tasks));
     }
 
@@ -50,8 +50,7 @@ public class TasksController : ControllerBase
     {
         var userId = GetUserId();
         var task = new TaskItem { Title = request.Title, IsDone = false, UserId = userId };
-        _context.Tasks.Add(task);
-        await _context.SaveChangesAsync();
+        await _tasks.AddAsync(task);
         var response = new TaskResponse(task.Id, task.Title, task.IsDone);
         return StatusCode(201, ApiResponse<TaskResponse>.Ok(response, "Created", 201));
     }
@@ -60,12 +59,12 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskRequest updated)
     {
         var userId = GetUserId();
-        var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+        var task = await _tasks.GetByIdForUserAsync(id, userId);
         if (task == null) return StatusCode(404, ApiResponse<object>.Fail("Task not found", 404));
 
         if (updated.Title != null) task.Title = updated.Title;
         if (updated.IsDone.HasValue) task.IsDone = updated.IsDone.Value;
-        await _context.SaveChangesAsync();
+        await _tasks.UpdateAsync(task);
 
         var response = new TaskResponse(task.Id, task.Title, task.IsDone);
         return Ok(ApiResponse<TaskResponse>.Ok(response, "Updated"));
@@ -75,11 +74,10 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var userId = GetUserId();
-        var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+        var task = await _tasks.GetByIdForUserAsync(id, userId);
         if (task == null) return StatusCode(404, ApiResponse<object>.Fail("Task not found", 404));
 
-        _context.Tasks.Remove(task);
-        await _context.SaveChangesAsync();
+        await _tasks.RemoveAsync(task);
 
         return StatusCode(204, ApiResponse<object>.Ok(null, "Deleted", 204));
     }

@@ -1,13 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using TaskManager.Data;
 using TaskManager.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using TaskManager.Dto;
+using TaskManager.Repositories;
+using TaskManager.Services;
 
 namespace TaskManager.API;
 
@@ -15,14 +11,14 @@ namespace TaskManager.API;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly IUserRepository _users;
+    private readonly ITokenService _tokenService;
     private readonly PasswordHasher<User> _passwordHasher = new();
 
-    public AuthController(ApplicationDbContext context, IConfiguration configuration)
+    public AuthController(IUserRepository users, ITokenService tokenService)
     {
-        _context = context;
-        _configuration = configuration;
+        _users = users;
+        _tokenService = tokenService;
     }
 
     public record RegisterRequest(string Email, string Password);
@@ -32,7 +28,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var exists = await _context.Users.AnyAsync(u => u.Email == request.Email);
+        var exists = await _users.AnyByEmailAsync(request.Email);
 
         if (exists)
         {
@@ -48,17 +44,15 @@ public class AuthController : ControllerBase
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        var token = GenerateJwt(user);
+        await _users.AddAsync(user);
+        var token = _tokenService.GenerateToken(user);
         return Ok(ApiResponse<AuthResponse>.Ok(message: "Registered", data: new AuthResponse(token)));
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var user = await _users.GetByEmailAsync(request.Email);
         if (user == null)
         {
             return StatusCode(401, ApiResponse<AuthResponse>.Fail(
@@ -76,36 +70,7 @@ public class AuthController : ControllerBase
             ));
         }
 
-        var token = GenerateJwt(user);
+        var token = _tokenService.GenerateToken(user);
         return Ok(ApiResponse<AuthResponse>.Ok(message: "Logged in", data: new AuthResponse(token)));
-    }
-
-    private string GenerateJwt(User user)
-    {
-        var jwtSection = _configuration.GetSection("Jwt");
-        var issuer = jwtSection["Issuer"];
-        var audience = jwtSection["Audience"];
-        var secret = jwtSection["Secret"] ?? string.Empty;
-        var expiresMinutes = int.TryParse(jwtSection["ExpiresMinutes"], out var mins) ? mins : 60;
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString())
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiresMinutes),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
