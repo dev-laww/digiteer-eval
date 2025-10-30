@@ -1,0 +1,75 @@
+name: .NET Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test (.NET 9)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9.x
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install Premake5
+        run: |
+          curl -L -o premake5.tar.gz https://github.com/premake/premake-core/releases/download/v5.0.0/premake-5.0.0-linux.tar.gz
+          tar -xzf premake5.tar.gz
+          sudo mv premake5 /usr/local/bin/premake5
+          premake5 --version
+
+      - name: Generate solution with Premake
+        working-directory: backend
+        run: |
+          set -e
+          if premake5 --file=premake5.lua --help | grep -q gendsln; then
+            echo "Using custom 'gendsln' action"
+            premake5 --file=premake5.lua gendsln
+          else
+            echo "Falling back to 'vs2022' action"
+            premake5 --file=premake5.lua vs2022
+          fi
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore TaskManager.sln
+
+      - name: Build (for tests)
+        working-directory: backend
+        run: dotnet build TaskManager.sln --configuration Release --no-restore
+
+      - name: Test
+        working-directory: backend
+        run: dotnet test TaskManager.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: |
+            backend/**/TestResults/*.trx
+            backend/**/TestResults/**/*.trx
+
+
