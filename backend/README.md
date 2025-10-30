@@ -11,12 +11,12 @@ From the `backend` folder:
 
 ```bash
 # Run the API
-cd application
+cd Application
  dotnet run
 
 # Run EF migrations
-cd application
- dotnet ef database update
+cd Application
+dotnet ef database update
 
 # Run all tests
 cd ..
@@ -39,7 +39,7 @@ premake5 gendsln
 ```
 
 This creates `TaskManager.sln` in the `backend` folder containing:
-- `application/task-manager-api.csproj`
+- `Application/task-manager-api.csproj`
 - `tests/TaskManager.UnitTests/TaskManager.UnitTests.csproj`
 - `tests/TaskManager.IntegrationTests/TaskManager.IntegrationTests.csproj`
 

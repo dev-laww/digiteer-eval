@@ -25,7 +25,7 @@ This repository contains a .NET 9 Web API backend and a React + Vite frontend. T
    dotnet ef database update
    dotnet run
    ```
-4. The API should be available at `http://localhost:5076` (see `Properties/launchSettings.json`).
+4. The API should be available at `http://localhost:5215` (see `Properties/launchSettings.json`).
 
 ## Frontend – Getting Started
 
@@ -36,7 +36,10 @@ This repository contains a .NET 9 Web API backend and a React + Vite frontend. T
    ```
 2. Create a `.env` file with the API base URL (adjust the port if your API runs elsewhere):
    ```bash
-   echo "VITE_API_BASE_URL=http://localhost:5076/api" > .env
+   echo "VITE_API_BASE_URL=http://localhost:5215/api" > .env
+   
+   # you may also copy from .env.example
+   cp .env.example .env
    ```
 3. Start the dev server:
    ```bash
