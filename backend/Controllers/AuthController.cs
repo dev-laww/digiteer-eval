@@ -7,6 +7,7 @@ using TaskManager.Data;
 using TaskManager.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using TaskManager.Dto;
 
 namespace TaskManager.API;
 
@@ -32,7 +33,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var exists = await _context.Users.AnyAsync(u => u.Email == request.Email);
-        if (exists) return Conflict(new { message = "Email already in use" });
+
+        if (exists)
+        {
+            return StatusCode(409, ApiResponse<AuthResponse>.Fail(
+                message: "Email already in use",
+                code: 409
+            ));
+        }
 
         var user = new User
         {
@@ -44,20 +52,32 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
 
         var token = GenerateJwt(user);
-        return Ok(new AuthResponse(token));
+        return Ok(ApiResponse<AuthResponse>.Ok(message: "Registered", data: new AuthResponse(token)));
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        if (user == null) return Unauthorized();
+        if (user == null)
+        {
+            return StatusCode(401, ApiResponse<AuthResponse>.Fail(
+                message: "Invalid credentials",
+                code: 401
+            ));
+        }
 
         var verify = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-        if (verify == PasswordVerificationResult.Failed) return Unauthorized();
+        if (verify == PasswordVerificationResult.Failed)
+        {
+            return StatusCode(401, ApiResponse<AuthResponse>.Fail(
+                message: "Invalid credentials",
+                code: 401
+            ));
+        }
 
         var token = GenerateJwt(user);
-        return Ok(new AuthResponse(token));
+        return Ok(ApiResponse<AuthResponse>.Ok(message: "Logged in", data: new AuthResponse(token)));
     }
 
     private string GenerateJwt(User user)
@@ -73,9 +93,9 @@ public class AuthController : ControllerBase
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString())
         };
 
         var token = new JwtSecurityToken(
