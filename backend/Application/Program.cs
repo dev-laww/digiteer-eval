@@ -40,6 +40,27 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// CORS: read allowed origins from configuration (appsettings.json -> Cors:AllowedOrigins)
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+    });
+});
+
 // Use InMemory DB when running in Testing environment to support integration tests
 if (builder.Environment.EnvironmentName == "Testing")
 {
@@ -116,6 +137,7 @@ app.UseExceptionHandler(builder =>
 });
 
 app.UseHttpsRedirection();
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
