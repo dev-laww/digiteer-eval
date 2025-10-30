@@ -1,51 +1,76 @@
-# 🧪 Full-Stack Evaluator – Technical Exam
+# 🧪 Full-Stack Task Manager (Mono Repo)
 
-Welcome to the technical evaluation!
+This repository contains a .NET 9 Web API backend and a React + Vite frontend. The app supports auth, CRUD tasks, Tailwind CSS v4, and a shadcn-style design system with light/dark theming.
 
-This monorepo contains both the **backend (.NET 9 Web API)** and **frontend (React)** projects. Your task is to build and/or fix key parts of this intentionally incomplete system. Expect quirks. Think like a dev in the wild.
+## Projects
 
----
+- Backend: `backend/Application` (.NET 9 Web API + EF Core)
+- Frontend: `frontend` (React 19, Vite 7, Tailwind v4)
 
-## ⏱️ Time Limit
+## Prerequisites
 
-**4 to 5 hours**  
-Treat this like a timed test. Don’t overthink it. Show your best work in that window.
+- Node.js 20+
+- .NET SDK 9+
+- PostgreSQL 14+ (or update the connection string)
 
----
+## Backend – Getting Started
 
-## 🎯 Objectives
+1. Navigate to the backend project directory:
+   ```bash
+   cd backend/Application
+   ```
+2. Configure the connection string in `appsettings.json` if needed.
+3. Run migrations and start the API:
+   ```bash
+   dotnet ef database update
+   dotnet run
+   ```
+4. The API should be available at `http://localhost:5076` (see `Properties/launchSettings.json`).
 
-- ✅ Connect frontend to the existing API
-- 🔧 Implement or complete missing backend logic
-- 🔄 Handle real-world scenarios (partial data, errors, state)
-- 💅 Code should be clean, structured, and readable
-- 📦 Commit regularly — **no one big fat commit**
+## Frontend – Getting Started
 
----
+1. Navigate to `frontend` and install dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Create a `.env` file with the API base URL (adjust the port if your API runs elsewhere):
+   ```bash
+   echo "VITE_API_BASE_URL=http://localhost:5076/api" > .env
+   ```
+3. Start the dev server:
+   ```bash
+   npm run dev
+   ```
 
-## 📦 Stack Overview
+## Styling and Theme
 
-### Backend
+- Tailwind v4 via the official Vite plugin (`@tailwindcss/vite`).
+- Design tokens defined in `frontend/src/index.css` using `@theme` and CSS variables.
+- shadcn-inspired UI primitives live in `frontend/src/components/ui`.
+- Light/dark mode toggled via `data-theme` on `<html>` with a small helper in `frontend/src/lib/theme.js`.
 
-- .NET 9 Web API
-- Entity Framework Core
-- PostgreSQL
-- Swagger docs
+## Tests
 
-### Frontend
+- Unit and integration tests are under `backend/tests`. Run with the standard `dotnet test`.
 
-- React + Axios
-- Redux Toolkit (if present)
-- Vite (dev server)
-- Styled however you like (no CSS wars)
+## Environment Variables
 
----
+- Frontend: `VITE_API_BASE_URL` (e.g., `http://localhost:5076/api`)
+- Backend: configure DB connection string in `Application/appsettings.json`.
 
-✅ Submission Guidelines
-- Push your code to a public GitHub repo
-- Include a short write-up in your commit messages or a NOTES.md file:
-- What you implemented
-- What’s missing (if any)
-- How to test your changes
+## Useful Commands
 
-Good luck. Build smart. Code loud. 💻🔥
+- Backend
+  - `dotnet run` – run API
+  - `dotnet ef database update` – apply migrations
+  - `dotnet test` – run tests
+- Frontend
+  - `npm run dev` – start vite dev server
+  - `npm run build` – production build
+  - `npm run preview` – preview production build
+
+## Notes
+
+- Tailwind editor warnings for `@theme`/`@apply` are expected with some IDEs; the Vite plugin compiles them correctly.
+- The frontend persists the auth token to `localStorage` and attaches it as a Bearer token for API calls.

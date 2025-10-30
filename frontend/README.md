@@ -1,26 +1,53 @@
-# 🧪 React Task Evaluator Frontend
+# 🧪 Frontend (React + Vite + Tailwind v4)
 
-⏰ **Estimated Time**: 1-2 hours  
-🔧 **Tech Stack**:
-- [React 18+](https://reactjs.org/)
-- [Vite](https://vitejs.dev/)
-- [Axios](https://axios-http.com/)
-- Your choice of component styling (Tailwind, MUI, plain CSS, go wild)
+React 19 app built with Vite 7. Uses Tailwind v4 via the official Vite plugin and shadcn-style UI primitives. Light/dark theme is supported.
 
-## 🎯 Objectives
+## Quick Start
 
-- ✅ Connect to a RESTful API (with some "quirks") – see: [.NET Task Evaluator API](https://github.com/phia-digiteer/dotnet-task-evaluator)
-- 🛠️ Implement features with partial or ambiguous requirements  
-- ⚠️ Identify places where API usage is unsafe or incomplete  
-- 🧠 Show thought process via commits, comments, or UI choices  
-- 📦 Handle API failures gracefully  
-- 🚀 Add features you think are missing or underexplored
+```bash
+cd frontend
+npm install
+echo "VITE_API_BASE_URL=http://localhost:5076/api" > .env
+npm run dev
+```
 
+## Scripts
 
-### 📦 Guidelines
+- `npm run dev` – start the Vite dev server
+- `npm run build` – build for production
+- `npm run preview` – preview the production build
+- `npm run lint` – run ESLint
 
-- This isn't about pixel-perfect UI. Logic > Looks.
-- **Commit often** so we can follow your thought process.
-- Leave `TODO` or `FIXME` comments if something’s unclear or unfinished.
-- You're free to use any libs—just be transparent.
-- Questions? Clarify assumptions in your commits or a note in the README.
+## Configuration
+
+- API base URL is read from `VITE_API_BASE_URL` (see `.env`).
+- Tailwind v4 is enabled via `@tailwindcss/vite` in `vite.config.js`.
+- Global styles, tokens and theme definitions live in `src/index.css`:
+  - `@import "tailwindcss"` – Tailwind base/utilities
+  - `@theme` – maps CSS variables to Tailwind tokens (`border-border`, `bg-background`, etc.)
+  - `:root` – default light theme variables
+  - `[data-theme="dark"]` – dark theme overrides
+
+## Theme
+
+- The theme is toggled by setting `document.documentElement.dataset.theme` to `light` or `dark`.
+- Helpers live in `src/lib/theme.js` (`initTheme`, `toggleTheme`).
+- The header includes a theme toggle using lucide-react icons.
+
+## UI
+
+- shadcn-inspired components are in `src/components/ui` and consume Tailwind tokens
+- Page-level composition uses these primitives without modifying the components themselves
+
+## Folders
+
+- `src/components` – UI primitives and page components
+- `src/pages` – route pages (Login, Register, Tasks)
+- `src/hooks` – API hooks (React Query)
+- `src/api/axios.js` – axios instance (attaches Bearer token from localStorage)
+- `src/store/auth` – simple auth store (Zustand)
+
+## Notes
+
+- Some editors warn about `@apply`/`@theme`; compilation is handled by the Tailwind Vite plugin.
+- For mobile viewport height quirks, the layout can use `min-h-dvh` or `100svh`; current layout uses a standard flex column with full-width pages.
