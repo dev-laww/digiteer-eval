@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../application/task-manager-api.csproj" />
+    <ProjectReference Include="../../Application/task-manager-api.csproj" />
   </ItemGroup>
 </Project>
 
