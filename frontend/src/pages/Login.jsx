@@ -14,7 +14,7 @@ export default function Login() {
     if (isAuthenticated) return <Navigate to='/' replace />
 
     return (
-        <div className='grid place-items-center px-4'>
+        <div className='grow grid w-full place-items-center px-4'>
             <Card className='w-full max-w-md'>
                 <CardHeader>
                     <CardTitle className='text-2xl'>Welcome back</CardTitle>

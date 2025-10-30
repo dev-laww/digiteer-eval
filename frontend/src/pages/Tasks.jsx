@@ -2,7 +2,7 @@ import TasksCard from '../components/tasks/TasksCard.jsx'
 
 function Tasks() {
     return (
-        <div className='max-w-2xl mx-auto py-6'>
+        <div className='max-w-2xl min-w-2xl mx-auto py-6'>
             <TasksCard />
         </div>
     );
